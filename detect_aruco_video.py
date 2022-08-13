@@ -4,6 +4,7 @@ import imutils
 import time
 import cv2
 import sys
+import numpy as np
 
 ap = argparse.ArgumentParser()
 # ap.add_argument("-i","--image", required=True,
@@ -68,8 +69,12 @@ time.sleep(2.0)
 #Camera Settings
 
 aruco_len =  0.163 # 16.3 cm
-camera_matrix = 
-camera_dist = 
+camera_matrix = np.matrix([
+[ 757.7574154293701, 0, 638.4948152909574],
+[ 0, 758.5212504108516, 406.45129752550054],
+[ 0, 0, 1] ])
+
+camera_dist = np.array([ 0.1295301484374958, -0.1325476683656682, 0.0029232886276809892, -0.003878180299787567, 0.021085953642091773 ])
 #loop over the frames from the video stream
 while True:
 
@@ -77,11 +82,11 @@ while True:
     #to have a max width of 1000 pixels
     frame = vs.read()
     frame = imutils.resize(frame,width = 1000)
-    print("after resize")
+    #print("after resize")
 
     #detect ArUco Markers in the input frame
     (corners,ids, rejected) = cv2.aruco.detectMarkers(frame,arucoDict,parameters = arucoParams)
-    print("detect ArUco")
+    #print("detect ArUco")
     '''
 
 
@@ -96,14 +101,23 @@ while True:
 
 
     # verify *at least* one ArUco marker was detected
-    
+
 
     if len(corners) > 0:
         # flatten the ArUco IDs list
-        print("id flattening")
+        #print("id flattening")
         ids = ids.flatten()
-        rvecs, tvecs = cv2.aruco.estimatePoseSingleMarkers(corners[0], aruco_len, camera_matrix, camera_dist)
-        print(rvecs,tvecs)
+        rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners[0], aruco_len, camera_matrix, camera_dist)
+        see_rvecs = rvecs*100
+        see_tvecs = tvecs*100
+        #print(see_tvecs, see_rvecs)
+        #Define 3*3 matrix for rotation
+        # rot_mat = np.array([[0,0,0],[0,0,0],[0,0,0]])
+        rot_mat = np.zeros([3,3])
+
+        cv2.Rodrigues(rvecs,rot_mat)
+
+        print(rot_mat)
 
         # loop over the detected ArUCo corners
         for (markerCorner, markerID) in zip(corners, ids):
@@ -136,6 +150,7 @@ while True:
         cv2.putText(frame, str(markerID),
             (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX,
             0.5, (0, 255, 0), 2)
+        cv2.drawFrameAxes(frame,camera_matrix,camera_dist,rvecs,tvecs,0.1,3)
         #print("[INFO] ArUco marker ID: {}".format(markerID))
 
 		# show the output image
@@ -152,6 +167,41 @@ cv2.destroyAllWindows()
 vs.stop()
 
 
+# camera calinration params
 
-
-
+# {
+#     "camera": "HP Wide Vision HD (04f2:b56d)",
+#     "platform": "X11; Linux x86_64",
+#     "camera_matrix": [
+#         [
+#             757.7574154293701,
+#             0,
+#             638.4948152909574
+#         ],
+#         [
+#             0,
+#             758.5212504108516,
+#             406.45129752550054
+#         ],
+#         [
+#             0,
+#             0,
+#             1
+#         ]
+#     ],
+#     "distortion_coefficients": [
+#         0.1295301484374958,
+#         -0.1325476683656682,
+#         0.0029232886276809892,
+#         -0.003878180299787567,
+#         0.021085953642091773
+#     ],
+#     "distortion_model": "rectilinear",
+#     "avg_reprojection_error": 0.16253617870389453,
+#     "img_size": [
+#         1280,
+#         720
+#     ],
+#     "keyframes": 12,
+#     "calibration_time": "Sat, 13 Aug 2022 17:25:10 GMT"
+# }
